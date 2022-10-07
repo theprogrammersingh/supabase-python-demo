@@ -1,15 +1,23 @@
 import os
 from supabase import create_client, Client
 
-from flask import Flask
+from flask import Flask, request
+
 app = Flask(__name__)
 SUPABASE_PROJECT_URL: str = os.getenv('SUPABASE_PROJECT_URL')
 SUPABASE_API_KEY: str = os.getenv('SUPABASE_API_KEY')
 supabase: Client = create_client(SUPABASE_PROJECT_URL, SUPABASE_API_KEY)
-
 @app.route('/')
 def default():
     return "Hello World"
+
+@app.route('/supabase/login', methods=['POST'])
+def login():
+    data = request.json
+    print(data['email'])
+    user = supabase.auth.sign_in(email=data['email'], password=data['password'])
+    print(user)
+    return "logged in"
 
 @app.route('/supabase/insert')
 def insert():
@@ -33,6 +41,10 @@ def delete():
 
 @app.route('/supabase/calculate-area/<buildingId>')
 def calculateArea(buildingId):
+    data = request.json
+    user = supabase.auth.api.get_user(jwt=data['token'])
+    if not user: 
+        return 'You needed to be logged in'
     fetchedData = supabase.table("building_dimensions").select("*").eq("id", buildingId).execute()
     buildingData = fetchedData.data[0]
     print(buildingData)
